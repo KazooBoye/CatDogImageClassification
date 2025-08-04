@@ -3,6 +3,7 @@ from tensorflow.keras import layers, models, optimizers, callbacks
 import matplotlib.pyplot as plt
 import numpy as np
 from DataPreprocess import DataPreprocessor
+from PIL import Image
 import os
 
 class CatDogClassifier:
@@ -93,7 +94,7 @@ class CatDogClassifier:
         
         return callbacks_list
     
-    def train(self, train_generator, val_generator, epochs=100, model_name='simple_cat_dog_model'):
+    def train(self, train_generator, val_generator, epochs=60, model_name='simple_cat_dog_model'):
         """Train the model"""
         if self.model is None:
             raise ValueError("Model not built. Call build_model() first.")
@@ -200,16 +201,132 @@ class CatDogClassifier:
             'f1_score': f1_score
         }
 
+def debug_dataset(dataset_path):
+    """Debug organized dataset to find corrupted files without deleting them"""
+    
+    corrupted_files = []
+    total_files = 0
+    metadata_files = []
+    
+    print("=== DEBUGGING ORGANIZED DATASET ===")
+    
+    for split in ['train', 'val', 'test']:
+        print(f"\nChecking {split} split:")
+        for class_name in ['cats', 'dogs']:
+            folder_path = os.path.join(dataset_path, split, class_name)
+            if not os.path.exists(folder_path):
+                print(f"  Folder not found: {folder_path}")
+                continue
+                
+            files_in_folder = os.listdir(folder_path)
+            print(f"  {class_name}: {len(files_in_folder)} files")
+            
+            for filename in files_in_folder:
+                file_path = os.path.join(folder_path, filename)
+                
+                # Check for macOS metadata files
+                if filename.startswith('.') or filename.startswith('._'):
+                    metadata_files.append(file_path)
+                    print(f"    METADATA FILE: {filename}")
+                    continue
+                
+                # Check image files
+                if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    total_files += 1
+                    
+                    try:
+                        # Try to open and validate the image
+                        with Image.open(file_path) as img:
+                            img.load()  # Force load
+                            # Check basic properties
+                            if img.size[0] < 10 or img.size[1] < 10:
+                                print(f"    TINY IMAGE: {filename} - size: {img.size}")
+                            
+                        # Try verify (this closes the file)
+                        with Image.open(file_path) as img:
+                            img.verify()
+                        
+                        # Try conversion
+                        with Image.open(file_path) as img:
+                            img.convert('RGB')
+                            
+                    except Exception as e:
+                        corrupted_files.append(file_path)
+                        print(f"    CORRUPTED: {filename} - Error: {str(e)}")
+                        
+                        # Try to get file size to debug further
+                        try:
+                            file_size = os.path.getsize(file_path)
+                            print(f"      File size: {file_size} bytes")
+                        except:
+                            print(f"      Cannot get file size")
+                
+                else:
+                    print(f"    NON-IMAGE FILE: {filename}")
+    
+    print(f"\n=== DEBUGGING SUMMARY ===")
+    print(f"Total image files: {total_files}")
+    print(f"Corrupted files: {len(corrupted_files)}")
+    print(f"Metadata files: {len(metadata_files)}")
+    
+    if corrupted_files:
+        print(f"\n=== CORRUPTED FILES LIST ===")
+        for i, file_path in enumerate(corrupted_files, 1):
+            print(f"{i:2d}. {file_path}")
+    
+    if metadata_files:
+        print(f"\n=== METADATA FILES LIST ===")
+        for i, file_path in enumerate(metadata_files, 1):
+            print(f"{i:2d}. {file_path}")
+    
+    return corrupted_files, metadata_files
+
+def clean_metadata_files(dataset_path):
+    """Remove macOS metadata files from organized dataset"""
+    import os
+    
+    removed_count = 0
+    
+    for split in ['train', 'val', 'test']:
+        for class_name in ['cats', 'dogs']:
+            folder_path = os.path.join(dataset_path, split, class_name)
+            if not os.path.exists(folder_path):
+                continue
+                
+            for filename in os.listdir(folder_path):
+                if filename.startswith('.') or filename.startswith('._'):
+                    file_path = os.path.join(folder_path, filename)
+                    os.remove(file_path)
+                    removed_count += 1
+                    print(f"Removed: {filename}")
+    
+    print(f"Removed {removed_count} metadata files")
+
 def main():
     # Initialize preprocessor and create data generators
     preprocessor = DataPreprocessor(data_path="./Dataset", target_size=(224, 224))
     
+    # Debug and remove metadata files from the dataset first
+   
+    print("Debugging organized dataset...")
+    corrupted_files, metadata_files = debug_dataset('organized_dataset') 
+    if metadata_files:
+        print(f"\n Cleaning {len(metadata_files)} metadata files...")
+        clean_metadata_files('organized_dataset')
+        print("Metadata files cleaned")
+    
+    if corrupted_files:
+        print(f"\nFound {len(corrupted_files)} corrupted files")
+        response = input("Do you want to continue anyway? (y/n): ")
+        if response.lower() != 'y':
+            print("Exiting...")
+            return
     
     # Create data generators
     print("Creating data generators...")
     train_gen, val_gen, test_gen = preprocessor.create_data_generators(
         'organized_dataset', 
-        batch_size=32
+        batch_size=8
     )
     
     # Create and train simple neural network

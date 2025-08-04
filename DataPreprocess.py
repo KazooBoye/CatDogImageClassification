@@ -82,7 +82,7 @@ class DataPreprocessor:
                 successful += 1
         print(f"  Successfully processed: {successful}/{len(image_list)} images")
 
-    def organize_and_preprocess_dataset(self, cats_folder, dogs_folder, output_dir, test_split=0.1, val_split=0.2):
+    def organize_and_preprocess_dataset(self, cats_folder, dogs_folder, output_dir, test_split, val_split):
         """Organize dataset into train/val/test structure with preprocessing"""
         
         # Create directory structure
@@ -128,7 +128,7 @@ class DataPreprocessor:
         print(f"Val:   {len(cats_val)} cats, {len(dogs_val)} dogs")
         print(f"Test:  {len(cats_test)} cats, {len(dogs_test)} dogs")
 
-    def create_data_generators(self, data_dir, batch_size=32):
+    def create_data_generators(self, data_dir, batch_size):
         """Create data generators with augmentation for preprocessed images"""
         
         # Training data generator with augmentation
@@ -185,7 +185,7 @@ if __name__ == "__main__":
         './Dataset/Dog/', 
         'organized_dataset',
         test_split=0.1,
-        val_split=0.2
+        val_split=0.3
     )
     
     # Create data generators
