@@ -38,24 +38,11 @@ def configure_gpu():
     print(f"Default device: {tf.config.get_visible_devices()}")
     return len(gpus) > 0
 
-# Configure mixed precision for better GPU performance
-def enable_mixed_precision():
-    """Enable mixed precision training for better GPU performance"""
-    try:
-        policy = tf.keras.mixed_precision.Policy('mixed_float16')
-        tf.keras.mixed_precision.set_global_policy(policy)
-        print("Mixed precision training enabled (float16)")
-        return True
-    except Exception as e:
-        print(f"Could not enable mixed precision: {e}")
-        return False
-
 class CatDogClassifier:
-    def __init__(self, input_shape=(224, 224, 1), use_mixed_precision=False):  # Changed to 1 channel for grayscale
+    def __init__(self, input_shape=(224, 224, 1)):  # Removed mixed precision parameter
         self.input_shape = input_shape
         self.model = None
         self.history = None
-        self.use_mixed_precision = use_mixed_precision
         
     def create_simple_nn_model(self):
         """Create a simple neural network with fully connected layers"""
@@ -85,8 +72,7 @@ class CatDogClassifier:
                 layers.Dropout(0.2),
                 
                 # Output layer for binary classification
-                # Use float32 for final layer if using mixed precision
-                layers.Dense(1, activation='sigmoid', dtype='float32' if self.use_mixed_precision else None)
+                layers.Dense(1, activation='sigmoid')
             ])
         
         return model
@@ -95,11 +81,8 @@ class CatDogClassifier:
         """Build and compile the model"""
         self.model = self.create_simple_nn_model()
         
-        # Compile model with appropriate optimizer for mixed precision
+        # Compile model
         optimizer = optimizers.Adam(learning_rate=0.001)
-        if self.use_mixed_precision:
-            # Wrap optimizer for mixed precision
-            optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
         
         self.model.compile(
             optimizer=optimizer,
@@ -284,11 +267,6 @@ def main():
     print("=== GPU Configuration ===")
     gpu_available = configure_gpu()
     
-    # Enable mixed precision if GPU is available
-    mixed_precision_enabled = False
-    if gpu_available:
-        mixed_precision_enabled = enable_mixed_precision()
-    
     # Initialize preprocessor and create data generators
     preprocessor = DataPreprocessor(data_path="../Dataset", target_size=(224, 224))
     
@@ -301,7 +279,7 @@ def main():
     
     # Create and train simple neural network
     print("\n=== Training Simple Neural Network ===")
-    classifier = CatDogClassifier(use_mixed_precision=mixed_precision_enabled)
+    classifier = CatDogClassifier()
     classifier.build_model()
     classifier.model.summary()
     
@@ -322,7 +300,6 @@ def main():
     print(f"Best Test Accuracy: {results['accuracy']:.4f}")
     print(f"Model saved as: simple_cat_dog_model_best.h5")
     print(f"GPU was {'used' if gpu_available else 'not available'}")
-    print(f"Mixed precision was {'enabled' if mixed_precision_enabled else 'disabled'}")
 
 if __name__ == "__main__":
     main()
