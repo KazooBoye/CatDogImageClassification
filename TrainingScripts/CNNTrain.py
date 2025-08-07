@@ -36,25 +36,13 @@ def configure_gpu():
     print(f"Default device: {tf.config.get_visible_devices()}")
     return len(gpus) > 0
 
-# Configure mixed precision for better GPU performance
-def enable_mixed_precision():
-    """Enable mixed precision training for better GPU performance"""
-    try:
-        policy = tf.keras.mixed_precision.Policy('mixed_float16')
-        tf.keras.mixed_precision.set_global_policy(policy)
-        print("Mixed precision training enabled (float16)")
-        return True
-    except Exception as e:
-        print(f"Could not enable mixed precision: {e}")
-        return False
+
 
 class CatDogCNNClassifier:
-    def __init__(self, input_shape=(224, 224, 3), use_mixed_precision=False, model_type='cnn'):
+    def __init__(self, input_shape=(224, 224, 3)):
         self.input_shape = input_shape
         self.model = None
         self.history = None
-        self.use_mixed_precision = use_mixed_precision
-        self.model_type = model_type
         
     def create_cnn_model(self):
         """Create a CNN model optimized for image classification"""
@@ -101,127 +89,17 @@ class CatDogCNNClassifier:
                 layers.Dropout(0.5),
                 
                 # Output layer
-                layers.Dense(1, activation='sigmoid', dtype='float32' if self.use_mixed_precision else None)
+                layers.Dense(1, activation='sigmoid')
             ])
         
         return model
-    
-    def create_lightweight_cnn_model(self):
-        """Create a lightweight CNN model with better regularization"""
-        with tf.device('/GPU:0' if tf.config.list_physical_devices('GPU') else '/CPU:0'):
-            model = models.Sequential([
-                # First Convolutional Block
-                layers.Conv2D(32, (3, 3), activation='relu', input_shape=self.input_shape, padding='same',
-                             kernel_regularizer=tf.keras.regularizers.l2(0.001)),
-                layers.BatchNormalization(),
-                layers.MaxPooling2D((2, 2)),
-                layers.Dropout(0.3),  # Increased dropout
-                
-                # Second Convolutional Block
-                layers.Conv2D(64, (3, 3), activation='relu', padding='same',
-                             kernel_regularizer=tf.keras.regularizers.l2(0.001)),
-                layers.BatchNormalization(),
-                layers.MaxPooling2D((2, 2)),
-                layers.Dropout(0.35),  # Increased dropout
-                
-                # Third Convolutional Block
-                layers.Conv2D(96, (3, 3), activation='relu', padding='same',  # Reduced filters
-                             kernel_regularizer=tf.keras.regularizers.l2(0.001)),
-                layers.BatchNormalization(),
-                layers.MaxPooling2D((2, 2)),
-                layers.Dropout(0.4),  # Increased dropout
-                
-                # Global Average Pooling
-                layers.GlobalAveragePooling2D(),
-                
-                # Simpler dense layers to reduce overfitting
-                layers.Dense(64, activation='relu',  # Reduced from 128
-                           kernel_regularizer=tf.keras.regularizers.l2(0.001)),
-                layers.BatchNormalization(),
-                layers.Dropout(0.6),  # Higher dropout before output
-                
-                # Output layer
-                layers.Dense(1, activation='sigmoid', dtype='float32' if self.use_mixed_precision else None)
-            ])
-        
-        return model
-    
-    def create_resnet_style_model(self):
-        """Create a ResNet-inspired architecture"""
-        with tf.device('/GPU:0' if tf.config.list_physical_devices('GPU') else '/CPU:0'):
-            
-            def residual_block(x, filters, kernel_size=3, stride=1):
-                """Create a residual block"""
-                shortcut = x
-                
-                # First conv layer
-                x = layers.Conv2D(filters, kernel_size, strides=stride, padding='same')(x)
-                x = layers.BatchNormalization()(x)
-                x = layers.ReLU()(x)
-                
-                # Second conv layer
-                x = layers.Conv2D(filters, kernel_size, strides=1, padding='same')(x)
-                x = layers.BatchNormalization()(x)
-                
-                # Adjust shortcut if needed
-                if stride != 1 or shortcut.shape[-1] != filters:
-                    shortcut = layers.Conv2D(filters, 1, strides=stride, padding='same')(shortcut)
-                    shortcut = layers.BatchNormalization()(shortcut)
-                
-                # Add shortcut
-                x = layers.Add()([x, shortcut])
-                x = layers.ReLU()(x)
-                
-                return x
-            
-            # Input layer
-            inputs = layers.Input(shape=self.input_shape)
-            
-            # Initial conv
-            x = layers.Conv2D(64, 7, strides=2, padding='same')(inputs)
-            x = layers.BatchNormalization()(x)
-            x = layers.ReLU()(x)
-            x = layers.MaxPooling2D(3, strides=2, padding='same')(x)
-            
-            # Residual blocks
-            x = residual_block(x, 64)
-            x = residual_block(x, 64)
-            
-            x = residual_block(x, 128, stride=2)
-            x = residual_block(x, 128)
-            
-            x = residual_block(x, 256, stride=2)
-            x = residual_block(x, 256)
-            
-            # Global average pooling and classification
-            x = layers.GlobalAveragePooling2D()(x)
-            x = layers.Dropout(0.5)(x)
-            outputs = layers.Dense(1, activation='sigmoid', 
-                                  dtype='float32' if self.use_mixed_precision else None)(x)
-            
-            model = models.Model(inputs, outputs)
-        
-        return model
-    
-    def create_model(self):
-        """Create model based on specified type"""
-        if self.model_type == 'cnn':
-            return self.create_cnn_model()
-        elif self.model_type == 'lightweight_cnn':
-            return self.create_lightweight_cnn_model()
-        elif self.model_type == 'resnet_style':
-            return self.create_resnet_style_model()
-        else:
-            raise ValueError(f"Unknown model type: {self.model_type}")
     
     def build_model(self, learning_rate=0.0005):  # Reduced from 0.001
         """Build and compile the model"""
-        self.model = self.create_model()
+        self.model = self.create_cnn_model()
         
         # Compile model with XLA optimization
         optimizer = optimizers.Adam(learning_rate=learning_rate)
-        if self.use_mixed_precision:
-            optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
         
         self.model.compile(
             optimizer=optimizer,
@@ -230,7 +108,7 @@ class CatDogCNNClassifier:
             jit_compile=True  # Enable XLA compilation for faster execution
         )
         
-        print(f"{self.model_type.upper()} Model created with XLA optimization")
+        print("Standard CNN Model created with XLA optimization")
         print(f"Total parameters: {self.model.count_params():,}")
         
         # Calculate trainable parameters
@@ -374,7 +252,7 @@ class CatDogCNNClassifier:
         axes[1, 1].grid(True)
         
         plt.tight_layout()
-        plt.savefig(f'{self.model_type}_training_history.png', dpi=300, bbox_inches='tight')
+        plt.savefig('cnn_training_history.png', dpi=300, bbox_inches='tight')
         plt.show()
     
     def evaluate_model(self, test_generator):
@@ -432,145 +310,51 @@ class CatDogCNNClassifier:
         
         return class_name, confidence
 
-def find_optimal_batch_size(input_shape=(224, 224, 3)):
-    """Find the largest batch size that fits in GPU memory"""
-    if not tf.config.list_physical_devices('GPU'):
-        return 16
-    
-    # Test batch sizes for 6GB GPU
-    test_sizes = [16, 32, 48, 64, 80, 96, 128]
-    max_working_size = 16
-    
-    print("Testing optimal batch size for 6GB GPU...")
-    
-    for batch_size in test_sizes:
-        try:
-            print(f"  Testing batch size: {batch_size}")
-            
-            # Create a test CNN model
-            with tf.device('/GPU:0'):
-                test_model = tf.keras.Sequential([
-                    tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=input_shape, padding='same'),
-                    tf.keras.layers.MaxPooling2D((2, 2)),
-                    tf.keras.layers.Conv2D(64, (3, 3), activation='relu', padding='same'),
-                    tf.keras.layers.MaxPooling2D((2, 2)),
-                    tf.keras.layers.Conv2D(128, (3, 3), activation='relu', padding='same'),
-                    tf.keras.layers.GlobalAveragePooling2D(),
-                    tf.keras.layers.Dense(128, activation='relu'),
-                    tf.keras.layers.Dense(1, activation='sigmoid')
-                ])
-                
-                # Test with dummy data
-                dummy_data = tf.random.normal([batch_size] + list(input_shape))
-                dummy_labels = tf.random.uniform([batch_size, 1])
-                
-                # Compile and try a forward pass
-                test_model.compile(optimizer='adam', loss='binary_crossentropy')
-                _ = test_model(dummy_data)
-                
-                # Try a training step
-                with tf.GradientTape() as tape:
-                    predictions = test_model(dummy_data)
-                    loss = tf.keras.losses.binary_crossentropy(dummy_labels, predictions)
-                
-                gradients = tape.gradient(loss, test_model.trainable_variables)
-            
-            max_working_size = batch_size
-            print(f"    ✓ Batch size {batch_size} works")
-            
-            # Clear memory
-            del test_model, dummy_data, dummy_labels, predictions, loss, gradients
-            tf.keras.backend.clear_session()
-            
-        except tf.errors.ResourceExhaustedError:
-            print(f"    ✗ Batch size {batch_size} - Out of memory")
-            break
-        except Exception as e:
-            print(f"    ✗ Batch size {batch_size} - Error: {e}")
-            break
-    
-    print(f"Optimal batch size: {max_working_size}")
-    return max_working_size
-
 def main():
     # Configure GPU before doing anything else
     print("=== GPU Configuration ===")
     gpu_available = configure_gpu()
     
-    # Enable mixed precision if GPU is available
-    mixed_precision_enabled = False
-    if gpu_available:
-        mixed_precision_enabled = enable_mixed_precision()
-    
-    # Find optimal batch size for your 6GB GPU
-    optimal_batch_size = 16  # Default fallback
-    if gpu_available:
-        optimal_batch_size = find_optimal_batch_size()
+    # Use static batch size
+    batch_size = 32 if gpu_available else 16
+    print(f"Using batch size: {batch_size}")
     
     # Initialize preprocessor
     preprocessor = DataPreprocessor(data_path="../Dataset", target_size=(224, 224))
     
-    # Create data generators with optimal batch size
+    # Create data generators with static batch size
     print("\n=== Creating Data Generators ===")
     train_gen, val_gen, test_gen = preprocessor.create_data_generators(
         '../organized_dataset', 
-        batch_size=optimal_batch_size
+        batch_size=batch_size
     )
     
-    # Train different CNN models
-    models_to_train = [
-        ('lightweight_cnn', 'Lightweight CNN'),
-        ('cnn', 'Standard CNN'),
-        ('resnet_style', 'ResNet-Style CNN'),
-    ]
+    # Create and train Standard CNN model
+    print("\n=== Training Standard CNN ===")
+    classifier = CatDogCNNClassifier()
+    classifier.build_model()
     
-    results = {}
+    # Print model summary
+    print("\nStandard CNN Architecture:")
+    classifier.model.summary()
     
-    for model_type, model_name in models_to_train:
-        print(f"\n=== Training {model_name} ===")
-        
-        classifier = CatDogCNNClassifier(
-            use_mixed_precision=mixed_precision_enabled,
-            model_type=model_type
-        )
-        classifier.build_model()
-        
-        # Print model summary
-        print(f"\n{model_name} Architecture:")
-        classifier.model.summary()
-        
-        # Train model
-        history = classifier.train(
-            train_gen, val_gen, 
-            epochs=30,  # CNNs converge faster than dense networks
-            model_name=f'{model_type}_cat_dog_model'
-        )
-        
-        # Plot training history
-        classifier.plot_training_history()
-        
-        # Evaluate model
-        test_results = classifier.evaluate_model(test_gen)
-        results[model_name] = test_results
-        
-        print(f"\n{model_name} Results:")
-        print(f"  Accuracy: {test_results['accuracy']:.4f}")
-        print(f"  F1-Score: {test_results['f1_score']:.4f}")
-        print(f"  Model saved as: {model_type}_cat_dog_model_best.h5")
-        
-        # Clear memory before next model
-        tf.keras.backend.clear_session()
+    # Train model
+    history = classifier.train(
+        train_gen, val_gen, 
+        epochs=30,  # CNNs converge faster than dense networks
+        model_name='cnn_cat_dog_model'
+    )
     
-    # Compare results
-    print(f"\n=== FINAL COMPARISON ===")
-    print("Model                    | Accuracy | F1-Score | Parameters")
-    print("-" * 60)
-    for model_name, result in results.items():
-        print(f"{model_name:<24} | {result['accuracy']:.4f}   | {result['f1_score']:.4f}   |")
+    # Plot training history
+    classifier.plot_training_history()
     
-    # Find best model
-    best_model = max(results.items(), key=lambda x: x[1]['accuracy'])
-    print(f"\nBest performing model: {best_model[0]} with {best_model[1]['accuracy']:.4f} accuracy")
+    # Evaluate model
+    test_results = classifier.evaluate_model(test_gen)
+    
+    print(f"\n=== FINAL RESULTS ===")
+    print(f"Test Accuracy: {test_results['accuracy']:.4f}")
+    print(f"Test F1-Score: {test_results['f1_score']:.4f}")
+    print(f"Model saved as: cnn_cat_dog_model_best.h5")
 
 if __name__ == "__main__":
     main()

@@ -241,11 +241,11 @@ class ImprovedCNNClassifier:
         print(f"Final Gap: {final_gap:.4f}")
         
         if final_gap > 0.1:
-            print("⚠️  Still some overfitting (gap > 0.1)")
+            print("Still some overfitting (gap > 0.1)")
         elif final_gap > 0.05:
-            print("✅ Moderate overfitting (gap 0.05-0.1)")
+            print("Moderate overfitting (gap 0.05-0.1)")
         else:
-            print("✅ Good generalization (gap < 0.05)")
+            print("Good generalization (gap < 0.05)")
     
     def evaluate_model(self, test_generator):
         """Evaluate model on test data"""
