@@ -129,18 +129,19 @@ class DataPreprocessor:
         print(f"Test:  {len(cats_test)} cats, {len(dogs_test)} dogs")
 
     def create_data_generators(self, data_dir, batch_size):
-        """Create data generators with augmentation for preprocessed images"""
+        """Create data generators with moderate augmentation"""
         
-        # Training data generator with augmentation
+        # Training data generator with moderate augmentation
         train_datagen = ImageDataGenerator(
             rescale=1./255,  # Still need this since we saved as [0,255]
-            rotation_range=20,
-            width_shift_range=0.2,
-            height_shift_range=0.2,
+            rotation_range=15,      # Reduced from 30
+            width_shift_range=0.1,  # Reduced from 0.25
+            height_shift_range=0.1, # Reduced from 0.25
             horizontal_flip=True,
-            zoom_range=0.2,
-            shear_range=0.2,
-            fill_mode='nearest'
+            zoom_range=0.1,         # Reduced from 0.25
+            shear_range=0.1,        # Reduced from 0.25
+            fill_mode='nearest',
+            validation_split=0.0
         )
         
         # Validation and test data generators (no augmentation)
