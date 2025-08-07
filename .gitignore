@@ -7,3 +7,4 @@ tempCodeRunnerFile.py
 /__pycache__
 cuda_13.0.0_580.65.06_linux.run
 simple_cat_dog_model_best.h5
+simple_cat_dog_model_best.keras

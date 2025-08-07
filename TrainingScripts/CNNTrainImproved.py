@@ -162,8 +162,6 @@ class ImprovedCNNClassifier:
         print(f"Starting training for {epochs} epochs...")
         print(f"Steps per epoch: {steps_per_epoch}")
         print(f"Validation steps: {validation_steps}")
-        print(f"Training samples: {train_generator.samples}")
-        print(f"Validation samples: {val_generator.samples}")
         
         # Train model
         with tf.device('/GPU:0' if tf.config.list_physical_devices('GPU') else '/CPU:0'):

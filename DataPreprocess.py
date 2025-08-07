@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import tensorflow as tf
 import shutil
 
 class DataPreprocessor:
@@ -149,37 +150,42 @@ class DataPreprocessor:
         )
         
         # Validation and test data generators (no augmentation)
-        val_test_datagen = ImageDataGenerator(rescale=1./255)
+        val_datagen = ImageDataGenerator(rescale=1./255)
+        test_datagen = ImageDataGenerator(rescale=1./255)
         
-        # Training generator
+        # Create generators with optimization
         train_generator = train_datagen.flow_from_directory(
-            f"{data_dir}/train",
+            os.path.join(data_dir, 'train'),
             target_size=self.target_size,
             batch_size=batch_size,
             class_mode='binary',
-            color_mode='grayscale'  # Load as grayscale
+            color_mode='grayscale',
+            shuffle=True
         )
         
         # Validation generator
-        val_generator = val_test_datagen.flow_from_directory(
-            f"{data_dir}/val",
+        val_generator = val_datagen.flow_from_directory(
+            os.path.join(data_dir, 'val'),
             target_size=self.target_size,
             batch_size=batch_size,
             class_mode='binary',
-            color_mode='grayscale'  # Load as grayscale
+            color_mode='grayscale',
+            shuffle=False
         )
         
         # Test generator
-        test_generator = val_test_datagen.flow_from_directory(
-            f"{data_dir}/test",
+        test_generator = test_datagen.flow_from_directory(
+            os.path.join(data_dir, 'test'),
             target_size=self.target_size,
             batch_size=batch_size,
             class_mode='binary',
-            shuffle=False,  # Don't shuffle test data
-            color_mode='grayscale'  # Load as grayscale
+            color_mode='grayscale',
+            shuffle=False
         )
-        
-        return train_generator, val_generator, test_generator
+
+        # Return the Keras generators directly - they have known length and work with model.fit()
+        # The TensorFlow dataset conversion was causing the length issue
+        return (train_generator, val_generator, test_generator)
 
 
 

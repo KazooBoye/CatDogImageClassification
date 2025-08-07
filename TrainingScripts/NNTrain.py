@@ -60,17 +60,17 @@ class CatDogClassifier:
                 # layers.Dropout(0.5),
                 
                 # Second hidden layer
-                layers.Dense(256, activation='relu'),
+                layers.Dense(2048, activation='relu'),
                 layers.BatchNormalization(),
                 layers.Dropout(0.4),
                 
                 # Third hidden layer
-                layers.Dense(128, activation='relu'),
+                layers.Dense(512, activation='relu'),
                 layers.BatchNormalization(),
                 layers.Dropout(0.3),
                 
                 # Fourth hidden layer
-                layers.Dense(64, activation='relu'),
+                layers.Dense(32, activation='relu'),
                 layers.Dropout(0.2),
                 
                 # Output layer for binary classification
@@ -89,7 +89,8 @@ class CatDogClassifier:
         self.model.compile(
             optimizer=optimizer,
             loss='binary_crossentropy',
-            metrics=['accuracy', 'precision', 'recall']
+            metrics=['accuracy', 'precision', 'recall'],
+            jit_compile=True  # Enable JIT compilation for performance
         )
         
         print("Simple Neural Network Model created")
