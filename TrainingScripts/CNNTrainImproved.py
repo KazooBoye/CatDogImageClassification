@@ -2,9 +2,11 @@ import tensorflow as tf
 from tensorflow.keras import layers, models, optimizers, callbacks
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from DataPreprocess import DataPreprocessor
 from PIL import Image
-import os
 
 # Configure GPU settings
 def configure_gpu():
