@@ -156,12 +156,19 @@ class DataCleaningVisualizer:
         
         df = self.analysis_results.copy()
         
-        # Normalize metrics to 0-1 scale
+        # Normalize metrics to 0-1 scale (handle division by zero)
         metrics_to_normalize = ['edge_density', 'blur_score', 'main_object_ratio', 
                                'color_complexity', 'background_uniformity', 'texture_variance']
         
         for metric in metrics_to_normalize:
-            df[f'{metric}_norm'] = (df[metric] - df[metric].min()) / (df[metric].max() - df[metric].min())
+            min_val = df[metric].min()
+            max_val = df[metric].max()
+            
+            # Handle case where all values are the same
+            if max_val == min_val:
+                df[f'{metric}_norm'] = 0.5  # Set to middle value
+            else:
+                df[f'{metric}_norm'] = (df[metric] - min_val) / (max_val - min_val)
         
         # Calculate composite noise score (higher = more noisy)
         # Bad indicators (higher = worse): edge_density, color_complexity, background_uniformity, texture_variance
@@ -186,37 +193,89 @@ class DataCleaningVisualizer:
         
         df = self.analysis_results
         
-        # Create a large figure with multiple subplots
-        fig, axes = plt.subplots(3, 3, figsize=(20, 15))
+        # Ensure noise scores are calculated
+        if 'noise_score' not in df.columns:
+            print("Noise scores not found. Calculating them now...")
+            self.calculate_noise_scores()
+            df = self.analysis_results
+        
+        # Filter metrics to only those that exist in the dataframe
+        all_metrics = ['edge_density', 'blur_score', 'main_object_ratio', 
+                      'color_complexity', 'background_uniformity', 'texture_variance', 'noise_score']
+        available_metrics = [metric for metric in all_metrics if metric in df.columns]
+        
+        print(f"Available metrics for visualization: {available_metrics}")
+        
+        # Create a figure with appropriate number of subplots
+        n_metrics = len(available_metrics)
+        if n_metrics <= 6:
+            rows, cols = 2, 3
+        else:
+            rows, cols = 3, 3
+            
+        fig, axes = plt.subplots(rows, cols, figsize=(20, 15))
         fig.suptitle('Image Quality Metrics Distribution Analysis', fontsize=16, fontweight='bold')
         
-        metrics = ['edge_density', 'blur_score', 'main_object_ratio', 
-                  'color_complexity', 'background_uniformity', 'texture_variance', 'noise_score']
+        # Flatten axes array for easier indexing
+        if rows == 1:
+            axes = [axes]
+        elif rows > 1:
+            axes = axes.flatten()
         
-        # Plot distributions for each metric
-        for i, metric in enumerate(metrics):
-            if i < 9:
-                row, col = i // 3, i % 3
-                ax = axes[row, col]
+        # Plot distributions for each available metric
+        plot_idx = 0
+        for metric in available_metrics:
+            if plot_idx < len(axes):
+                ax = axes[plot_idx]
                 
-                # Box plot comparing cats vs dogs
-                if metric in df.columns:
-                    sns.boxplot(data=df, x='class', y=metric, ax=ax)
-                    ax.set_title(f'{metric.replace("_", " ").title()}')
-                    ax.grid(True, alpha=0.3)
+                try:
+                    # Check if metric has valid data
+                    metric_data = df[metric].dropna()
+                    if len(metric_data) > 0 and not metric_data.isnull().all():
+                        # Box plot comparing cats vs dogs
+                        sns.boxplot(data=df, x='class', y=metric, ax=ax)
+                        ax.set_title(f'{metric.replace("_", " ").title()}')
+                        ax.grid(True, alpha=0.3)
+                        plot_idx += 1
+                    else:
+                        ax.text(0.5, 0.5, f'No valid data\nfor {metric}', 
+                               ha='center', va='center', transform=ax.transAxes)
+                        plot_idx += 1
+                except Exception as e:
+                    print(f"Error plotting {metric}: {e}")
+                    ax.text(0.5, 0.5, f'Error plotting\n{metric}', 
+                           ha='center', va='center', transform=ax.transAxes)
+                    plot_idx += 1
         
-        # Remove empty subplot
-        if len(metrics) < 9:
-            axes[2, 2].remove()
+        # Remove unused subplots
+        for i in range(plot_idx, len(axes)):
+            if hasattr(axes[i], 'remove'):
+                axes[i].remove()
         
-        # Add histogram for noise score
-        axes[2, 1].hist(df[df['class'] == 'cat']['noise_score'], alpha=0.7, label='Cats', bins=30)
-        axes[2, 1].hist(df[df['class'] == 'dog']['noise_score'], alpha=0.7, label='Dogs', bins=30)
-        axes[2, 1].set_title('Noise Score Distribution')
-        axes[2, 1].set_xlabel('Noise Score (higher = noisier)')
-        axes[2, 1].set_ylabel('Frequency')
-        axes[2, 1].legend()
-        axes[2, 1].grid(True, alpha=0.3)
+        # Create a separate figure for noise score histogram if we have the data
+        if 'noise_score' in df.columns:
+            try:
+                # Filter out NaN values for histogram
+                cat_scores = df[df['class'] == 'cat']['noise_score'].dropna()
+                dog_scores = df[df['class'] == 'dog']['noise_score'].dropna()
+                
+                if len(cat_scores) > 0 and len(dog_scores) > 0:
+                    # Create a separate figure for the histogram
+                    fig_hist, ax_hist = plt.subplots(1, 1, figsize=(10, 6))
+                    ax_hist.hist(cat_scores, alpha=0.7, label='Cats', bins=30)
+                    ax_hist.hist(dog_scores, alpha=0.7, label='Dogs', bins=30)
+                    ax_hist.set_title('Noise Score Distribution')
+                    ax_hist.set_xlabel('Noise Score (higher = noisier)')
+                    ax_hist.set_ylabel('Frequency')
+                    ax_hist.legend()
+                    ax_hist.grid(True, alpha=0.3)
+                    
+                    plt.tight_layout()
+                    plt.savefig('noise_score_histogram.png', dpi=300, bbox_inches='tight')
+                    plt.close(fig_hist)
+                    print("Noise score histogram saved as: noise_score_histogram.png")
+            except Exception as e:
+                print(f"Error creating noise score histogram: {e}")
         
         plt.tight_layout()
         plt.savefig('noise_metrics_analysis.png', dpi=300, bbox_inches='tight')
@@ -443,6 +502,7 @@ def main():
     print("Files created:")
     print("  - noise_metrics_analysis.png")
     print("  - clean_vs_noisy_samples.png") 
+    print("  - noise_score_histogram.png")
     print("  - clean_dataset.py")
 
 if __name__ == "__main__":
