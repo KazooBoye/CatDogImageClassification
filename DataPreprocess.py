@@ -136,15 +136,16 @@ class DataPreprocessor:
         
         # Training data generator with moderate augmentation
         train_datagen = ImageDataGenerator(
-            rescale=1./255,  # Still need this since we saved as [0,255]
-            rotation_range=15,      # Reduced from 30
-            width_shift_range=0.1,  # Reduced from 0.25
-            height_shift_range=0.1, # Reduced from 0.25
+            rescale=1./255,
+            rotation_range=30,      # Increased rotation
+            width_shift_range=0.3,  # Increased shifts
+            height_shift_range=0.3,
+            shear_range=0.3,        # Added shear
+            zoom_range=0.3,         # Increased zoom
             horizontal_flip=True,
-            zoom_range=0.1,         # Reduced from 0.25
-            shear_range=0.1,        # Reduced from 0.25
             fill_mode='nearest',
-            validation_split=0.0
+            brightness_range=[0.8, 1.2],  # Brightness variation
+            channel_shift_range=0.2        # Color variation
         )
         
         # Validation and test data generators (no augmentation)
