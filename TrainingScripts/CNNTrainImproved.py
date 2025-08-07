@@ -49,8 +49,10 @@ class ImprovedCNNClassifier:
         """Create a CNN with balanced regularization"""
         with tf.device('/GPU:0' if tf.config.list_physical_devices('GPU') else '/CPU:0'):
             model = models.Sequential([
+                # Input layer
+                layers.Input(shape=self.input_shape),
                 # First Convolutional Block
-                layers.Conv2D(32, (3, 3), activation='relu', input_shape=self.input_shape, padding='same'),
+                layers.Conv2D(32, (3, 3), activation='relu', padding='same'),
                 layers.BatchNormalization(),
                 layers.MaxPooling2D((2, 2)),
                 layers.Dropout(0.25),  # Reduced dropout
@@ -113,7 +115,7 @@ class ImprovedCNNClassifier:
         callbacks_list = [
             # Save best model based on validation accuracy (more stable than loss)
             callbacks.ModelCheckpoint(
-                f'{model_name}_best.h5',
+                f'{model_name}_best.keras',
                 monitor='val_accuracy',  # Monitor accuracy instead of loss
                 save_best_only=True,
                 save_weights_only=False,
@@ -140,7 +142,7 @@ class ImprovedCNNClassifier:
             ),
             
             # CSV logger
-            callbacks.CSVLogger(f'../TrainingLogs/{model_name}_training_log.csv')
+            callbacks.CSVLogger(f'TrainingLogs/{model_name}_training_log.csv')
         ]
         
         return callbacks_list
@@ -289,12 +291,12 @@ def main():
     print(f"Using batch size: {batch_size}")
     
     # Initialize preprocessor
-    preprocessor = DataPreprocessor(data_path="../Dataset", target_size=(224, 224))
+    preprocessor = DataPreprocessor(data_path="Dataset", target_size=(224, 224))
     
     # Create data generators
     print("\n=== Creating Data Generators ===")
     train_gen, val_gen, test_gen = preprocessor.create_data_generators(
-        '../organized_dataset', 
+        'organized_dataset', 
         batch_size=batch_size
     )
     
@@ -323,7 +325,7 @@ def main():
     print(f"\n=== FINAL SUMMARY ===")
     print(f"Test Accuracy: {test_results['accuracy']:.4f}")
     print(f"F1-Score: {test_results['f1_score']:.4f}")
-    print(f"Model saved as: improved_cnn_cat_dog_model_best.h5")
+    print(f"Model saved as: improved_cnn_cat_dog_model_best.keras")
     
     # Compare with validation accuracy to check generalization
     final_val_acc = history.history['val_accuracy'][-1]

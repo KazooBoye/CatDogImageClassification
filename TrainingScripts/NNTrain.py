@@ -49,8 +49,10 @@ class CatDogClassifier:
         # Use device scope to ensure model is created on GPU
         with tf.device('/GPU:0' if tf.config.list_physical_devices('GPU') else '/CPU:0'):
             model = models.Sequential([
+                # Input layer
+                layers.Input(shape=self.input_shape),
                 # Flatten the input images to 1D
-                layers.Flatten(input_shape=self.input_shape),
+                layers.Flatten(),
                 
                 # First hidden layer
                 # layers.Dense(512, activation='relu'),
@@ -104,7 +106,7 @@ class CatDogClassifier:
         callbacks_list = [
             # Save best model
             callbacks.ModelCheckpoint(
-                f'{model_name}_best.h5',
+                f'{model_name}_best.keras',
                 monitor='val_accuracy',
                 save_best_only=True,
                 save_weights_only=False,
@@ -129,7 +131,7 @@ class CatDogClassifier:
             ),
             
             # CSV logger
-            callbacks.CSVLogger(f'../TrainingLogs/{model_name}_training_log.csv')
+            callbacks.CSVLogger(f'TrainingLogs/{model_name}_training_log.csv')
         ]
         
         return callbacks_list
@@ -268,12 +270,12 @@ def main():
     gpu_available = configure_gpu()
     
     # Initialize preprocessor and create data generators
-    preprocessor = DataPreprocessor(data_path="../Dataset", target_size=(224, 224))
+    preprocessor = DataPreprocessor(data_path="Dataset", target_size=(224, 224))
     
     # Create data generators with GPU-optimized settings
     print("\n=== Creating Data Generators ===")
     train_gen, val_gen, test_gen = preprocessor.create_data_generators(
-        '../organized_dataset', 
+        'organized_dataset', 
         batch_size=64 if gpu_available else 8  # Larger batch size for GPU
     )
     
@@ -298,7 +300,7 @@ def main():
     
     print(f"\nFinal Results Summary:")
     print(f"Best Test Accuracy: {results['accuracy']:.4f}")
-    print(f"Model saved as: simple_cat_dog_model_best.h5")
+    print(f"Model saved as: simple_cat_dog_model_best.keras")
     print(f"GPU was {'used' if gpu_available else 'not available'}")
 
 if __name__ == "__main__":

@@ -50,8 +50,10 @@ class CatDogCNNClassifier:
         """Create a CNN model optimized for image classification"""
         with tf.device('/GPU:0' if tf.config.list_physical_devices('GPU') else '/CPU:0'):
             model = models.Sequential([
+                # Input layer
+                layers.Input(shape=self.input_shape),
                 # First Convolutional Block
-                layers.Conv2D(32, (3, 3), activation='relu', input_shape=self.input_shape, padding='same'),
+                layers.Conv2D(32, (3, 3), activation='relu', padding='same'),
                 layers.BatchNormalization(),
                 layers.Conv2D(32, (3, 3), activation='relu', padding='same'),
                 layers.MaxPooling2D((2, 2)),
@@ -128,7 +130,7 @@ class CatDogCNNClassifier:
         callbacks_list = [
             # Save best model
             callbacks.ModelCheckpoint(
-                f'{model_name}_best.h5',
+                f'{model_name}_best.keras',
                 monitor='val_accuracy',
                 save_best_only=True,
                 save_weights_only=False,
@@ -154,7 +156,7 @@ class CatDogCNNClassifier:
             ),
             
             # CSV logger
-            callbacks.CSVLogger(f'../TrainingLogs/{model_name}_training_log.csv')
+            callbacks.CSVLogger(f'TrainingLogs/{model_name}_training_log.csv')
         ]
         
         return callbacks_list
@@ -323,12 +325,12 @@ def main():
     print(f"Using batch size: {batch_size}")
     
     # Initialize preprocessor
-    preprocessor = DataPreprocessor(data_path="../Dataset", target_size=(224, 224))
+    preprocessor = DataPreprocessor(data_path="Dataset", target_size=(224, 224))
     
     # Create data generators with static batch size
     print("\n=== Creating Data Generators ===")
     train_gen, val_gen, test_gen = preprocessor.create_data_generators(
-        '../organized_dataset', 
+        'organized_dataset', 
         batch_size=batch_size
     )
     
@@ -357,7 +359,7 @@ def main():
     print(f"\n=== FINAL RESULTS ===")
     print(f"Test Accuracy: {test_results['accuracy']:.4f}")
     print(f"Test F1-Score: {test_results['f1_score']:.4f}")
-    print(f"Model saved as: cnn_cat_dog_model_best.h5")
+    print(f"Model saved as: cnn_cat_dog_model_best.keras")
 
 if __name__ == "__main__":
     main()
