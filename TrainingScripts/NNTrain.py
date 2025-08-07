@@ -49,7 +49,7 @@ def enable_mixed_precision():
         return False
 
 class CatDogClassifier:
-    def __init__(self, input_shape=(224, 224, 3), use_mixed_precision=False):
+    def __init__(self, input_shape=(224, 224, 1), use_mixed_precision=False):  # Changed to 1 channel for grayscale
         self.input_shape = input_shape
         self.model = None
         self.history = None

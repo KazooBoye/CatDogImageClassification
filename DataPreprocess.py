@@ -58,12 +58,15 @@ class DataPreprocessor:
             # Resize to target size
             img_resized = cv2.resize(img, self.target_size)
             
+            # Convert to grayscale (keep as single channel)
+            img_gray = cv2.cvtColor(img_resized, cv2.COLOR_RGB2GRAY)
+            
             # Normalize pixel values to [0, 1] and convert back to [0, 255] for saving
-            img_normalized = img_resized.astype(np.float32) / 255.0
+            img_normalized = img_gray.astype(np.float32) / 255.0
             img_to_save = (img_normalized * 255).astype(np.uint8)
             
-            # Convert back to PIL for saving
-            pil_img = Image.fromarray(img_to_save)
+            # Convert to PIL for saving (grayscale mode)
+            pil_img = Image.fromarray(img_to_save, mode='L')  # 'L' mode for grayscale
             pil_img.save(output_path, 'JPEG', quality=95)
             
             return True
@@ -152,7 +155,8 @@ class DataPreprocessor:
             f"{data_dir}/train",
             target_size=self.target_size,
             batch_size=batch_size,
-            class_mode='binary'
+            class_mode='binary',
+            color_mode='grayscale'  # Load as grayscale
         )
         
         # Validation generator
@@ -160,7 +164,8 @@ class DataPreprocessor:
             f"{data_dir}/val",
             target_size=self.target_size,
             batch_size=batch_size,
-            class_mode='binary'
+            class_mode='binary',
+            color_mode='grayscale'  # Load as grayscale
         )
         
         # Test generator
@@ -169,7 +174,8 @@ class DataPreprocessor:
             target_size=self.target_size,
             batch_size=batch_size,
             class_mode='binary',
-            shuffle=False  # Don't shuffle test data
+            shuffle=False,  # Don't shuffle test data
+            color_mode='grayscale'  # Load as grayscale
         )
         
         return train_generator, val_generator, test_generator

@@ -39,7 +39,7 @@ def configure_gpu():
 
 
 class CatDogCNNClassifier:
-    def __init__(self, input_shape=(224, 224, 3)):
+    def __init__(self, input_shape=(224, 224, 1)):  # Changed to 1 channel for grayscale
         self.input_shape = input_shape
         self.model = None
         self.history = None
@@ -292,10 +292,11 @@ class CatDogCNNClassifier:
         
         # Load and preprocess the image
         img = Image.open(image_path)
-        img = img.convert('RGB')
+        img = img.convert('L')  # Convert to grayscale ('L' mode)
         img = img.resize(self.input_shape[:2])
         img_array = np.array(img) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)
+        img_array = np.expand_dims(img_array, axis=-1)  # Add channel dimension
+        img_array = np.expand_dims(img_array, axis=0)   # Add batch dimension
         
         # Make prediction
         prediction = self.model.predict(img_array)

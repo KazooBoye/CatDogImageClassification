@@ -38,7 +38,7 @@ def configure_gpu():
 
 
 class ImprovedCNNClassifier:
-    def __init__(self, input_shape=(224, 224, 3)):
+    def __init__(self, input_shape=(224, 224, 1)):  # Changed to 1 channel for grayscale
         self.input_shape = input_shape
         self.model = None
         self.history = None
