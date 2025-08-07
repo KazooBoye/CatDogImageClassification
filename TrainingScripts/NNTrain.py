@@ -53,23 +53,23 @@ class CatDogClassifier:
                 layers.Input(shape=self.input_shape),
                 # Flatten the input images to 1D
                 layers.Flatten(),
-                
-                # First hidden layer
-                # layers.Dense(512, activation='relu'),
-                # layers.BatchNormalization(),
-                # layers.Dropout(0.5),
-                
-                # Second hidden layer
+
+                #layers.Dense(4096, activation='relu'),
+                #layers.BatchNormalization(),
+                #layers.Dropout(0.5),
+
                 layers.Dense(2048, activation='relu'),
                 layers.BatchNormalization(),
-                layers.Dropout(0.4),
+                layers.Dropout(0.5),
                 
-                # Third hidden layer
                 layers.Dense(512, activation='relu'),
+                layers.BatchNormalization(),
+                layers.Dropout(0.4),
+
+                layers.Dense(128, activation='relu'),
                 layers.BatchNormalization(),
                 layers.Dropout(0.3),
                 
-                # Fourth hidden layer
                 layers.Dense(32, activation='relu'),
                 layers.Dropout(0.2),
                 
