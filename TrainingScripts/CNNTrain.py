@@ -274,7 +274,7 @@ class CatDogCNNClassifier:
             ),
             
             # CSV logger
-            callbacks.CSVLogger(f'{model_name}_training_log.csv')
+            callbacks.CSVLogger(f'../TrainingLogs/{model_name}_training_log.csv')
         ]
         
         return callbacks_list
@@ -508,12 +508,12 @@ def main():
         optimal_batch_size = find_optimal_batch_size()
     
     # Initialize preprocessor
-    preprocessor = DataPreprocessor(data_path="./Dataset", target_size=(224, 224))
+    preprocessor = DataPreprocessor(data_path="../Dataset", target_size=(224, 224))
     
     # Create data generators with optimal batch size
     print("\n=== Creating Data Generators ===")
     train_gen, val_gen, test_gen = preprocessor.create_data_generators(
-        'organized_dataset', 
+        '../organized_dataset', 
         batch_size=optimal_batch_size
     )
     

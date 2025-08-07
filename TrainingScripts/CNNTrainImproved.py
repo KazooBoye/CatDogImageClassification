@@ -36,24 +36,12 @@ def configure_gpu():
     print(f"Default device: {tf.config.get_visible_devices()}")
     return len(gpus) > 0
 
-# Configure mixed precision for better GPU performance
-def enable_mixed_precision():
-    """Enable mixed precision training for better GPU performance"""
-    try:
-        policy = tf.keras.mixed_precision.Policy('mixed_float16')
-        tf.keras.mixed_precision.set_global_policy(policy)
-        print("Mixed precision training enabled (float16)")
-        return True
-    except Exception as e:
-        print(f"Could not enable mixed precision: {e}")
-        return False
 
 class ImprovedCNNClassifier:
-    def __init__(self, input_shape=(224, 224, 3), use_mixed_precision=False):
+    def __init__(self, input_shape=(224, 224, 3)):
         self.input_shape = input_shape
         self.model = None
         self.history = None
-        self.use_mixed_precision = use_mixed_precision
         
     def create_anti_overfitting_cnn(self):
         """Create a CNN with balanced regularization"""
@@ -86,7 +74,7 @@ class ImprovedCNNClassifier:
                 layers.Dropout(0.5),   # Moderate dropout
                 
                 # Output layer
-                layers.Dense(1, activation='sigmoid', dtype='float32' if self.use_mixed_precision else None)
+                layers.Dense(1, activation='sigmoid')
             ])
         
         return model
@@ -95,10 +83,8 @@ class ImprovedCNNClassifier:
         """Build and compile the model"""
         self.model = self.create_anti_overfitting_cnn()
         
-        # Compile model without XLA to avoid cuDNN issues
+        # Compile model
         optimizer = optimizers.Adam(learning_rate=learning_rate, beta_1=0.9, beta_2=0.999)
-        if self.use_mixed_precision:
-            optimizer = tf.keras.mixed_precision.LossScaleOptimizer(optimizer)
         
         self.model.compile(
             optimizer=optimizer,
@@ -152,7 +138,7 @@ class ImprovedCNNClassifier:
             ),
             
             # CSV logger
-            callbacks.CSVLogger(f'{model_name}_training_log.csv')
+            callbacks.CSVLogger(f'../TrainingLogs/{model_name}_training_log.csv')
         ]
         
         return callbacks_list
@@ -296,27 +282,23 @@ def main():
     print("=== GPU Configuration ===")
     gpu_available = configure_gpu()
     
-    # Disable mixed precision to avoid numerical issues
-    mixed_precision_enabled = False
-    print("Mixed precision disabled to avoid numerical instability")
-    
     # Use moderate batch size
     batch_size = 32 if gpu_available else 8
     print(f"Using batch size: {batch_size}")
     
     # Initialize preprocessor
-    preprocessor = DataPreprocessor(data_path="./Dataset", target_size=(224, 224))
+    preprocessor = DataPreprocessor(data_path="../Dataset", target_size=(224, 224))
     
     # Create data generators
     print("\n=== Creating Data Generators ===")
     train_gen, val_gen, test_gen = preprocessor.create_data_generators(
-        'organized_dataset', 
+        '../organized_dataset', 
         batch_size=batch_size
     )
     
     # Create and train improved CNN model
     print("\n=== Training Balanced CNN ===")
-    classifier = ImprovedCNNClassifier(use_mixed_precision=mixed_precision_enabled)
+    classifier = ImprovedCNNClassifier()
     classifier.build_model()
     
     # Print model summary
@@ -351,11 +333,11 @@ def main():
     print(f"Generalization Gap: {generalization_gap:.4f}")
     
     if generalization_gap < 0.02:
-        print("✅ Excellent generalization!")
+        print("Excellent generalization!")
     elif generalization_gap < 0.05:
-        print("✅ Good generalization")
+        print("Good generalization")
     else:
-        print("⚠️  Still some generalization issues")
+        print("Still some generalization issues")
 
 if __name__ == "__main__":
     main()

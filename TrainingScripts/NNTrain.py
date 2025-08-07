@@ -144,7 +144,7 @@ class CatDogClassifier:
             ),
             
             # CSV logger
-            callbacks.CSVLogger(f'{model_name}_training_log.csv')
+            callbacks.CSVLogger(f'../TrainingLogs/{model_name}_training_log.csv')
         ]
         
         return callbacks_list
@@ -389,7 +389,7 @@ def main():
         mixed_precision_enabled = enable_mixed_precision()
     
     # Initialize preprocessor and create data generators
-    preprocessor = DataPreprocessor(data_path="./Dataset", target_size=(224, 224))
+    preprocessor = DataPreprocessor(data_path="../Dataset", target_size=(224, 224))
     
     # Debug and remove metadata files from the dataset first
    
@@ -410,7 +410,7 @@ def main():
     # Create data generators with GPU-optimized settings
     print("\n=== Creating Data Generators ===")
     train_gen, val_gen, test_gen = preprocessor.create_data_generators(
-        'organized_dataset', 
+        '../organized_dataset', 
         batch_size=64 if gpu_available else 8  # Larger batch size for GPU
     )
     

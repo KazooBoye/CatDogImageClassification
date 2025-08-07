@@ -176,11 +176,10 @@ class DataPreprocessor:
 
 
 
-# Usage example
 if __name__ == "__main__":
     preprocessor = DataPreprocessor(data_path="./Dataset", target_size=(224, 224))
     
-    # Organize and preprocess dataset (10% test, 20% val, 70% train)
+    # Organize and preprocess dataset (10% test, 30% val, 60% train)
     preprocessor.organize_and_preprocess_dataset(
         './Dataset/Cat/', 
         './Dataset/Dog/', 
@@ -189,5 +188,5 @@ if __name__ == "__main__":
         val_split=0.3
     )
     
-    # Create data generators
+    # Create data generators (Used in training step)
     # train_gen, val_gen, test_gen = preprocessor.create_data_generators('organized_dataset')
