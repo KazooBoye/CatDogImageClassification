@@ -138,15 +138,15 @@ class DataPreprocessor:
         # Training data generator with moderate augmentation
         train_datagen = ImageDataGenerator(
             rescale=1./255,
-            rotation_range=30,      # Increased rotation
-            width_shift_range=0.3,  # Increased shifts
+            rotation_range=30,      
+            width_shift_range=0.3,  
             height_shift_range=0.3,
-            shear_range=0.3,        # Added shear
-            zoom_range=0.3,         # Increased zoom
+            shear_range=0.3,        
+            zoom_range=0.3,         
             horizontal_flip=True,
             fill_mode='nearest',
             brightness_range=[0.8, 1.2],  # Brightness variation
-            channel_shift_range=0.2        # Color variation
+            #channel_shift_range=0.2        # Color variation
         )
         
         # Validation and test data generators (no augmentation)
@@ -182,9 +182,6 @@ class DataPreprocessor:
             color_mode='grayscale',
             shuffle=False
         )
-
-        # Return the Keras generators directly - they have known length and work with model.fit()
-        # The TensorFlow dataset conversion was causing the length issue
         return (train_generator, val_generator, test_generator)
 
 
