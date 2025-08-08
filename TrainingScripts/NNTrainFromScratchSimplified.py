@@ -4,6 +4,7 @@ import sys
 import os
 import pickle
 import time
+import pandas as pd
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from DataPreprocess import DataPreprocessor
 from PIL import Image
@@ -141,7 +142,7 @@ class DenseLayer:
         return grad_input, grad_weights, grad_bias
 
 class CatDogClassifierFromScratch:
-    """Simplified Neural Network implementation optimized for training speed"""
+    """Simplified Neural Network implementation"""
     
     def __init__(self, input_shape=(224, 224, 1)):
         self.input_shape = input_shape
@@ -165,7 +166,8 @@ class CatDogClassifierFromScratch:
         # Training history
         self.history = {
             'loss': [], 'accuracy': [], 'precision': [], 'recall': [],
-            'val_loss': [], 'val_accuracy': [], 'val_precision': [], 'val_recall': []
+            'val_loss': [], 'val_accuracy': [], 'val_precision': [], 'val_recall': [],
+            'learning_rate': []  # Track learning rate changes
         }
         
         # Optimizer parameters (SGD with momentum - simpler than Adam)
@@ -452,6 +454,7 @@ class CatDogClassifierFromScratch:
             self.history['val_accuracy'].append(epoch_val_acc)
             self.history['val_precision'].append(epoch_val_prec)
             self.history['val_recall'].append(epoch_val_rec)
+            self.history['learning_rate'].append(self.learning_rate)  # Track current learning rate
             
             # Epoch summary with clean formatting
             print(f"\n{'EPOCH SUMMARY':^60}")
@@ -479,6 +482,7 @@ class CatDogClassifierFromScratch:
                 patience_counter = 0
                 self.save_model('simple_cat_dog_model_from_scratch_best.pkl')
                 print(f"  >>> NEW BEST! Validation accuracy: {best_val_accuracy:.4f} - Model saved")
+                print(f"  >>> Training log automatically saved with model")
             else:
                 patience_counter += 1
                 print(f"  No improvement for {patience_counter} epoch(s). Best: {best_val_accuracy:.4f}")
@@ -509,6 +513,52 @@ class CatDogClassifierFromScratch:
             
             print(f"{'='*60}")
     
+    def save_training_log(self, filename='TrainingLogs/saved_from_scratch_cat_dog_model_training_log.csv'):
+        """Save training history to CSV file"""
+        if not self.history['loss']:
+            print("No training history to save.")
+            return
+        
+        # Create directory if it doesn't exist (only if there's a directory path)
+        dirname = os.path.dirname(filename)
+        if dirname:  # Only create directory if dirname is not empty
+            os.makedirs(dirname, exist_ok=True)
+        
+        # Prepare data for CSV
+        training_data = {
+            'epoch': list(range(len(self.history['loss']))),
+            'accuracy': self.history['accuracy'],
+            'learning_rate': self.history['learning_rate'],  # Use actual learning rate history
+            'loss': self.history['loss'],
+            'precision': self.history['precision'],
+            'recall': self.history['recall'],
+            'val_accuracy': self.history['val_accuracy'],
+            'val_loss': self.history['val_loss'],
+            'val_precision': self.history['val_precision'],
+            'val_recall': self.history['val_recall']
+        }
+        
+        # Create DataFrame and save to CSV
+        try:
+            df = pd.DataFrame(training_data)
+            df.to_csv(filename, index=False)
+            print(f"Training history saved to: {filename}")
+        except Exception as e:
+            # Fallback to manual CSV writing if pandas fails
+            print(f"Pandas not available, using manual CSV writing: {e}")
+            with open(filename, 'w') as f:
+                # Write header
+                f.write("epoch,accuracy,learning_rate,loss,precision,recall,val_accuracy,val_loss,val_precision,val_recall\n")
+                
+                # Write data
+                for i in range(len(self.history['loss'])):
+                    f.write(f"{i},{self.history['accuracy'][i]},{self.history['learning_rate'][i]},"
+                           f"{self.history['loss'][i]},{self.history['precision'][i]},"
+                           f"{self.history['recall'][i]},{self.history['val_accuracy'][i]},"
+                           f"{self.history['val_loss'][i]},{self.history['val_precision'][i]},"
+                           f"{self.history['val_recall'][i]}\n")
+            print(f"Training history saved to: {filename}")
+
     def save_model(self, filename):
         """Save simplified model parameters"""
         model_data = {
@@ -520,6 +570,12 @@ class CatDogClassifierFromScratch:
         
         with open(filename, 'wb') as f:
             pickle.dump(model_data, f)
+        
+        # Also save training log when saving model
+        # Create a proper log filename in TrainingLogs directory
+        base_name = os.path.splitext(os.path.basename(filename))[0]
+        log_filename = f'TrainingLogs/{base_name}_training_log.csv'
+        self.save_training_log(log_filename)
     
     def load_model(self, filename):
         """Load simplified model parameters"""
@@ -661,6 +717,9 @@ def main():
     
     # Train model
     classifier.train(train_gen, val_gen, epochs=100)
+    
+    # Save training history to CSV
+    classifier.save_training_log('TrainingLogs/saved_from_scratch_cat_dog_model_training_log.csv')
     
     # Plot training history
     classifier.plot_training_history()

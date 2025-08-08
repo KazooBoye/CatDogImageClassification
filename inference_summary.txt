@@ -1,0 +1,23 @@
+CAT-DOG CLASSIFICATION MODEL INFERENCE RESULTS
+==================================================
+
+Model: improved_cnn_cat_dog_model_best.keras
+Total Test Samples: 2496
+
+PERFORMANCE METRICS:
+Overall Accuracy: 0.9187 (91.87%)
+Precision: 0.9104
+Recall: 0.9286
+Specificity: 0.9087
+F1-Score: 0.9194
+Error Rate: 0.0813 (8.13%)
+
+CLASS-WISE ACCURACY:
+Cat Accuracy: 0.9087 (90.87%)
+Dog Accuracy: 0.9286 (92.86%)
+
+CONFUSION MATRIX:
+True Positives (Dogs correct): 1158
+True Negatives (Cats correct): 1135
+False Positives (Cats→Dogs): 114
+False Negatives (Dogs→Cats): 89

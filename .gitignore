@@ -10,3 +10,4 @@ simple_cat_dog_model_best.h5
 simple_cat_dog_model_best.keras
 TrainingLogs/simple_cat_dog_model_training_log.csv
 TrainingLogs/simple_cat_dog_model_training_log.csv
+simple_cat_dog_model_from_scratch_best.pkl
